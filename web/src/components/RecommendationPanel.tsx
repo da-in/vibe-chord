@@ -69,7 +69,7 @@ export function RecommendationPanel({
               >
                 <span className="recommendation-card__label">{label}</span>
                 <span className="recommendation-card__hint">{rec.whenToChoose}</span>
-                {rec.reason && (
+                {(rec.reason || rec.reasonDetail) && (
                   <div className="recommendation-card__why">
                     <button
                       type="button"
@@ -83,7 +83,14 @@ export function RecommendationPanel({
                       ℹ️ 왜?
                     </button>
                     {whyOpen && (
-                      <p className="recommendation-card__why-text">{rec.reason}</p>
+                      <div className="recommendation-card__why-body">
+                        {rec.reason && (
+                          <p className="recommendation-card__why-notation">{rec.reason}</p>
+                        )}
+                        {rec.reasonDetail && (
+                          <p className="recommendation-card__why-text">{rec.reasonDetail}</p>
+                        )}
+                      </div>
                     )}
                   </div>
                 )}

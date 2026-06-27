@@ -18,6 +18,7 @@ export interface ChordRecommendation {
   chordId: string;
   whenToChoose: string;
   reason?: string;
+  reasonDetail?: string;
 }
 
 export const CHORD_DRAG_MIME = 'application/vnd.vibe-chord.chord-id';

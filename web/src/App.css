@@ -680,10 +680,22 @@
   padding: 2px 0;
 }
 
+.recommendation-card__why-body {
+  margin-top: 6px;
+}
+
+.recommendation-card__why-notation {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--accent-hover);
+}
+
 .recommendation-card__why-text {
-  margin: 6px 0 0;
+  margin: 4px 0 0;
   font-size: 0.75rem;
-  line-height: 1.4;
+  line-height: 1.5;
   color: var(--text-muted);
 }
 
