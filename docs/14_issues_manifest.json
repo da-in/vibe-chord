@@ -1,0 +1,296 @@
+[
+  {
+    "id": "F-01",
+    "title": "[F-01] 클릭·탭 즉시 코드 재생",
+    "label": "1순위",
+    "number": "1",
+    "url": "https://github.com/da-in/vibe-chord/issues/1"
+  },
+  {
+    "id": "F-07",
+    "title": "[F-07] 다음 코드 추천 패널",
+    "label": "1순위",
+    "number": "2",
+    "url": "https://github.com/da-in/vibe-chord/issues/2"
+  },
+  {
+    "id": "F-08",
+    "title": "[F-08] 추천 후보 ▶ 미리듣기",
+    "label": "1순위",
+    "number": "3",
+    "url": "https://github.com/da-in/vibe-chord/issues/3"
+  },
+  {
+    "id": "F-09",
+    "title": "[F-09] 후보 → 타임라인 추가 + 2코드 재생",
+    "label": "1순위",
+    "number": "4",
+    "url": "https://github.com/da-in/vibe-chord/issues/4"
+  },
+  {
+    "id": "F-10",
+    "title": "[F-10] \"이럴 때 고르면 좋다\" 한 문장",
+    "label": "1순위",
+    "number": "5",
+    "url": "https://github.com/da-in/vibe-chord/issues/5"
+  },
+  {
+    "id": "F-12",
+    "title": "[F-12] 화성학 규칙 기반 추천",
+    "label": "1순위",
+    "number": "6",
+    "url": "https://github.com/da-in/vibe-chord/issues/6"
+  },
+  {
+    "id": "F-19",
+    "title": "[F-19] 가로 코드 타임라인 (색 블록)",
+    "label": "1순위",
+    "number": "7",
+    "url": "https://github.com/da-in/vibe-chord/issues/7"
+  },
+  {
+    "id": "F-20",
+    "title": "[F-20] 블록 사이 \"+\" 끼워 넣기",
+    "label": "1순위",
+    "number": "8",
+    "url": "https://github.com/da-in/vibe-chord/issues/8"
+  },
+  {
+    "id": "F-24",
+    "title": "[F-24] ▶ Play / ■ Stop 전체 재생",
+    "label": "1순위",
+    "number": "9",
+    "url": "https://github.com/da-in/vibe-chord/issues/9"
+  },
+  {
+    "id": "F-31",
+    "title": "[F-31] 내장 MIDI 톤 재생",
+    "label": "1순위",
+    "number": "10",
+    "url": "https://github.com/da-in/vibe-chord/issues/10"
+  },
+  {
+    "id": "F-33",
+    "title": "[F-33] Undo",
+    "label": "1순위",
+    "number": "11",
+    "url": "https://github.com/da-in/vibe-chord/issues/11"
+  },
+  {
+    "id": "F-36",
+    "title": "[F-36] 4마디 완성 배지 + 자동 Play",
+    "label": "1순위",
+    "number": "12",
+    "url": "https://github.com/da-in/vibe-chord/issues/12"
+  },
+  {
+    "id": "F-41",
+    "title": "[F-41] 인터랙티브 시각화 — 타임라인",
+    "label": "1순위",
+    "number": "13",
+    "url": "https://github.com/da-in/vibe-chord/issues/13"
+  },
+  {
+    "id": "F-42",
+    "title": "[F-42] 재생 가능한 블록만 (텍스트 코드표 X)",
+    "label": "1순위",
+    "number": "14",
+    "url": "https://github.com/da-in/vibe-chord/issues/14"
+  },
+  {
+    "id": "F-13",
+    "title": "[F-13] \"전체 코드 열기\" → /explore",
+    "label": "2순위",
+    "number": "15",
+    "url": "https://github.com/da-in/vibe-chord/issues/15"
+  },
+  {
+    "id": "F-14",
+    "title": "[F-14] 24 diatonic 코드 그리드",
+    "label": "2순위",
+    "number": "16",
+    "url": "https://github.com/da-in/vibe-chord/issues/16"
+  },
+  {
+    "id": "F-15",
+    "title": "[F-15] 그리드 탭 → 재생 + 추가",
+    "label": "2순위",
+    "number": "17",
+    "url": "https://github.com/da-in/vibe-chord/issues/17"
+  },
+  {
+    "id": "F-16",
+    "title": "[F-16] 유명 진행 프리셋 목록",
+    "label": "2순위",
+    "number": "18",
+    "url": "https://github.com/da-in/vibe-chord/issues/18"
+  },
+  {
+    "id": "F-17",
+    "title": "[F-17] 프리셋 통째로 불러오기",
+    "label": "2순위",
+    "number": "19",
+    "url": "https://github.com/da-in/vibe-chord/issues/19"
+  },
+  {
+    "id": "F-21",
+    "title": "[F-21] 블록 드래그 순서 변경",
+    "label": "2순위",
+    "number": "20",
+    "url": "https://github.com/da-in/vibe-chord/issues/20"
+  },
+  {
+    "id": "F-22",
+    "title": "[F-22] 순서 변경 후 미리듣기",
+    "label": "2순위",
+    "number": "21",
+    "url": "https://github.com/da-in/vibe-chord/issues/21"
+  },
+  {
+    "id": "F-25",
+    "title": "[F-25] 재생 중 블록 하이라이트",
+    "label": "2순위",
+    "number": "22",
+    "url": "https://github.com/da-in/vibe-chord/issues/22"
+  },
+  {
+    "id": "F-30",
+    "title": "[F-30] Play 시 드럼·베이스 반주",
+    "label": "2순위",
+    "number": "23",
+    "url": "https://github.com/da-in/vibe-chord/issues/23"
+  },
+  {
+    "id": "F-32",
+    "title": "[F-32] 모바일·태블릿 반응형 큰 카드 UI",
+    "label": "2순위",
+    "number": "24",
+    "url": "https://github.com/da-in/vibe-chord/issues/24"
+  },
+  {
+    "id": "F-03",
+    "title": "[F-03] 분위기 칩 선택",
+    "label": "3순위",
+    "number": "25",
+    "url": "https://github.com/da-in/vibe-chord/issues/25"
+  },
+  {
+    "id": "F-04",
+    "title": "[F-04] 시작 코드 3~4개 카드",
+    "label": "3순위",
+    "number": "26",
+    "url": "https://github.com/da-in/vibe-chord/issues/26"
+  },
+  {
+    "id": "F-05",
+    "title": "[F-05] 한국어 느낌 라벨",
+    "label": "3순위",
+    "number": "27",
+    "url": "https://github.com/da-in/vibe-chord/issues/27"
+  },
+  {
+    "id": "F-34",
+    "title": "[F-34] 온보딩 3스텝",
+    "label": "3순위",
+    "number": "28",
+    "url": "https://github.com/da-in/vibe-chord/issues/28"
+  },
+  {
+    "id": "F-35",
+    "title": "[F-35] 회원가입·DAW 용어 생략",
+    "label": "3순위",
+    "number": "29",
+    "url": "https://github.com/da-in/vibe-chord/issues/29"
+  },
+  {
+    "id": "F-02",
+    "title": "[F-02] 드래그·드롭 추가 시 1마디 재생",
+    "label": "3순위",
+    "number": "30",
+    "url": "https://github.com/da-in/vibe-chord/issues/30"
+  },
+  {
+    "id": "F-06",
+    "title": "[F-06] 코드명 고급 모드 토글",
+    "label": "3순위",
+    "number": "31",
+    "url": "https://github.com/da-in/vibe-chord/issues/31"
+  },
+  {
+    "id": "F-11",
+    "title": "[F-11] ℹ️ \"왜?\" 이론 설명",
+    "label": "3순위",
+    "number": "32",
+    "url": "https://github.com/da-in/vibe-chord/issues/32"
+  },
+  {
+    "id": "F-18",
+    "title": "[F-18] 프리셋 코드 하나씩 교체",
+    "label": "3순위",
+    "number": "33",
+    "url": "https://github.com/da-in/vibe-chord/issues/33"
+  },
+  {
+    "id": "F-23",
+    "title": "[F-23] 블록 길이(마디) 조절",
+    "label": "3순위",
+    "number": "34",
+    "url": "https://github.com/da-in/vibe-chord/issues/34"
+  },
+  {
+    "id": "F-26",
+    "title": "[F-26] BPM 조절",
+    "label": "3순위",
+    "number": "35",
+    "url": "https://github.com/da-in/vibe-chord/issues/35"
+  },
+  {
+    "id": "F-27",
+    "title": "[F-27] 마디 수 슬라이더",
+    "label": "3순위",
+    "number": "36",
+    "url": "https://github.com/da-in/vibe-chord/issues/36"
+  },
+  {
+    "id": "F-28",
+    "title": "[F-28] 코드당 박 수 슬라이더",
+    "label": "3순위",
+    "number": "37",
+    "url": "https://github.com/da-in/vibe-chord/issues/37"
+  },
+  {
+    "id": "F-29",
+    "title": "[F-29] \"이렇게 이어지면 이런 느낌\" 연결 안내",
+    "label": "3순위",
+    "number": "38",
+    "url": "https://github.com/da-in/vibe-chord/issues/38"
+  },
+  {
+    "id": "F-39",
+    "title": "[F-39] 데모 공유 mp3·링크",
+    "label": "3순위",
+    "number": "39",
+    "url": "https://github.com/da-in/vibe-chord/issues/39"
+  },
+  {
+    "id": "F-37",
+    "title": "[F-37] 자연어·분위기 입력",
+    "label": "4순위",
+    "number": "40",
+    "url": "https://github.com/da-in/vibe-chord/issues/40"
+  },
+  {
+    "id": "F-38",
+    "title": "[F-38] 자연어 → 타임라인 + Play",
+    "label": "4순위",
+    "number": "41",
+    "url": "https://github.com/da-in/vibe-chord/issues/41"
+  },
+  {
+    "id": "F-40",
+    "title": "[F-40] 4마디 구간 좋고 나쁨 피드백",
+    "label": "4순위",
+    "number": "42",
+    "url": "https://github.com/da-in/vibe-chord/issues/42"
+  }
+]
