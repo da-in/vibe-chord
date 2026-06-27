@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CompletionBadge } from '../components/CompletionBadge';
+import { ChordPickerPanel } from '../components/ChordPickerPanel';
+import type { ChordPickerMode } from '../components/ChordPickerPanel';
 import { ConnectionHint } from '../components/ConnectionHint';
-import { NaturalLanguageBar } from '../components/NaturalLanguageBar';
 import { PlaybackControls } from '../components/PlaybackControls';
-import { RecommendationPanel } from '../components/RecommendationPanel';
-import { SectionFeedback } from '../components/SectionFeedback';
 import { StudioSettings } from '../components/StudioSettings';
 import { Timeline } from '../components/Timeline';
 import { useSettings } from '../context/SettingsContext';
@@ -13,32 +11,58 @@ import { useTimeline } from '../context/TimelineContext';
 import {
   ensureAudioStarted,
   playChord,
-  playOneBar,
+  playChords,
   playTimeline,
   stopPlayback,
 } from '../lib/audio';
 import { getRecommendations } from '../lib/harmony';
+import { getChord } from '../lib/chords';
+import { getPreset } from '../lib/presets';
+
+function defaultInsertIndex(timelineLength: number): number {
+  return timelineLength === 0 ? 0 : timelineLength;
+}
 
 export default function StudioPage() {
   const { bpm, beatsPerChord, showSymbols } = useSettings();
   const {
     timeline,
-    maxChords,
     canUndo,
+    canClearAll,
     saveHistory,
     undo,
-    appendChord,
+    clearAll,
     insertChord,
+    replaceChordAt,
+    replaceWithChordIds,
     reorder,
-    updateBlockBars,
   } = useTimeline();
 
   const [selectedInsertIndex, setSelectedInsertIndex] = useState<number | null>(
     null,
   );
+  const [replaceIndex, setReplaceIndex] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playingIndex, setPlayingIndex] = useState<number | null>(null);
-  const [showCompletionBadge, setShowCompletionBadge] = useState(false);
+  const [pianoNotes, setPianoNotes] = useState<string[]>([]);
+  const [pianoLabel, setPianoLabel] = useState<string | null>(null);
+
+  const clearPiano = useCallback(() => {
+    setPianoNotes([]);
+    setPianoLabel(null);
+  }, []);
+
+  const showChordOnPiano = useCallback((chordId: string) => {
+    const chord = getChord(chordId);
+    if (!chord) return;
+    setPianoNotes(chord.notes);
+    setPianoLabel(chord.symbol);
+  }, []);
+
+  useEffect(() => {
+    if (replaceIndex !== null) return;
+    setSelectedInsertIndex(defaultInsertIndex(timeline.length));
+  }, [timeline.length, replaceIndex]);
 
   const lastChordId = timeline[timeline.length - 1]?.chordId ?? null;
   const chordIds = useMemo(
@@ -49,39 +73,58 @@ export default function StudioPage() {
     () => getRecommendations(lastChordId, timeline.length),
     [lastChordId, timeline.length],
   );
-
-  useEffect(() => {
-    setShowCompletionBadge(timeline.length === maxChords);
-  }, [timeline.length, maxChords]);
+  const pickerMode = useMemo((): ChordPickerMode => {
+    if (replaceIndex !== null) return 'replace';
+    if (selectedInsertIndex !== null) return 'insert';
+    return 'append';
+  }, [replaceIndex, selectedInsertIndex]);
 
   const playbackOptions = useMemo(
     () => ({ withBacking: true, beatsPerChord }),
     [beatsPerChord],
   );
 
-  const playWithHighlight = useCallback(async () => {
-    setIsPlaying(true);
-    try {
-      await playTimeline(timeline, bpm, (index) => setPlayingIndex(index), playbackOptions);
-    } finally {
-      setIsPlaying(false);
-      setPlayingIndex(null);
-    }
-  }, [timeline, bpm, playbackOptions]);
+  const playWithHighlight = useCallback(
+    async (items = timeline) => {
+      setIsPlaying(true);
+      try {
+        await playTimeline(
+          items,
+          bpm,
+          (index) => {
+            setPlayingIndex(index);
+            const block = items[index];
+            if (block) showChordOnPiano(block.chordId);
+          },
+          playbackOptions,
+        );
+      } finally {
+        setIsPlaying(false);
+        setPlayingIndex(null);
+      }
+    },
+    [timeline, bpm, playbackOptions, showChordOnPiano],
+  );
 
-  const handleBlockClick = useCallback(async (_index: number, chordId: string) => {
+  const handleBlockClick = useCallback(async (index: number, chordId: string) => {
     await ensureAudioStarted();
     playChord(chordId);
-  }, []);
+    showChordOnPiano(chordId);
+
+    setReplaceIndex(index);
+    setSelectedInsertIndex(null);
+  }, [showChordOnPiano]);
 
   const handlePreview = useCallback(async (chordId: string) => {
     await ensureAudioStarted();
     playChord(chordId);
-  }, []);
+    showChordOnPiano(chordId);
+  }, [showChordOnPiano]);
 
-  const handleInsertClick = useCallback((index: number) => {
-    setSelectedInsertIndex(index);
-  }, []);
+  const handleInsertClick = useCallback(() => {
+    setReplaceIndex(null);
+    setSelectedInsertIndex(defaultInsertIndex(timeline.length));
+  }, [timeline.length]);
 
   const handlePlay = useCallback(async () => {
     if (timeline.length === 0) return;
@@ -94,177 +137,189 @@ export default function StudioPage() {
     stopPlayback();
     setIsPlaying(false);
     setPlayingIndex(null);
-  }, []);
+    clearPiano();
+  }, [clearPiano]);
 
   const handleUndo = useCallback(() => {
     undo();
-    setSelectedInsertIndex(null);
+    setReplaceIndex(null);
   }, [undo]);
+
+  const handleClearAll = useCallback(() => {
+    stopPlayback();
+    setIsPlaying(false);
+    setPlayingIndex(null);
+    clearAll();
+    setReplaceIndex(null);
+    clearPiano();
+  }, [clearAll, clearPiano]);
 
   const handleReorder = useCallback(
     async (fromIndex: number, toIndex: number) => {
       await ensureAudioStarted();
       saveHistory();
       const next = reorder(fromIndex, toIndex);
-      setSelectedInsertIndex(null);
+      setReplaceIndex(null);
       setIsPlaying(true);
       try {
-        await playTimeline(next, bpm, (index) => setPlayingIndex(index), playbackOptions);
+        await playTimeline(
+          next,
+          bpm,
+          (index) => {
+            setPlayingIndex(index);
+            const block = next[index];
+            if (block) showChordOnPiano(block.chordId);
+          },
+          playbackOptions,
+        );
       } finally {
         setIsPlaying(false);
         setPlayingIndex(null);
       }
     },
-    [saveHistory, reorder, bpm, playbackOptions],
+    [saveHistory, reorder, bpm, playbackOptions, showChordOnPiano],
   );
 
   const handleDropChord = useCallback(
-    async (chordId: string, index: number) => {
-      if (timeline.length >= maxChords && selectedInsertIndex === null) return;
+    (chordId: string, _index: number) => {
+      if (replaceIndex !== null) return;
 
-      await ensureAudioStarted();
       saveHistory();
 
-      const nextTimeline =
-        selectedInsertIndex !== null
-          ? insertChord(chordId, selectedInsertIndex)
-          : insertChord(chordId, index);
+      const targetIndex = selectedInsertIndex ?? defaultInsertIndex(timeline.length);
+      insertChord(chordId, targetIndex);
+    },
+    [replaceIndex, selectedInsertIndex, saveHistory, insertChord, timeline.length],
+  );
 
-      if (!nextTimeline) return;
+  const handleAddChord = useCallback(
+    (chordId: string) => {
+      if (replaceIndex !== null) {
+        saveHistory();
+        replaceChordAt(replaceIndex, chordId);
+        setReplaceIndex(null);
+        return;
+      }
 
-      setSelectedInsertIndex(null);
-      playOneBar(chordId, bpm, beatsPerChord);
+      saveHistory();
+      const insertAt = selectedInsertIndex ?? defaultInsertIndex(timeline.length);
+      insertChord(chordId, insertAt);
     },
     [
-      timeline.length,
-      maxChords,
+      replaceIndex,
       selectedInsertIndex,
+      timeline.length,
       saveHistory,
+      replaceChordAt,
       insertChord,
-      bpm,
-      beatsPerChord,
     ],
   );
 
-  const handleSelectRecommendation = useCallback(
-    async (chordId: string) => {
-      if (timeline.length >= maxChords && selectedInsertIndex === null) return;
+  const handleSelectPreset = useCallback(
+    async (presetId: string) => {
+      const preset = getPreset(presetId);
+      if (!preset) return;
+
+      if (
+        !window.confirm(
+          `현재 타임라인을 「${preset.name}」 진행으로 바꿉니다.`,
+        )
+      ) {
+        return;
+      }
 
       await ensureAudioStarted();
       saveHistory();
-
-      const nextTimeline =
-        selectedInsertIndex !== null
-          ? insertChord(chordId, selectedInsertIndex)
-          : appendChord(chordId);
-
-      if (!nextTimeline) return;
-
-      setSelectedInsertIndex(null);
-
-      const previewItems = nextTimeline.slice(-2);
-      await playTimeline(previewItems, bpm, undefined, {
-        withBacking: false,
-        beatsPerChord,
-      });
-
-      if (nextTimeline.length === maxChords) {
-        setShowCompletionBadge(true);
-        await playWithHighlight();
+      const next = replaceWithChordIds(preset.chordIds, presetId);
+      const previewIds = next
+        .slice(0, Math.min(2, next.length))
+        .map((c) => c.chordId);
+      if (previewIds.length > 0) {
+        await playChords(previewIds, bpm);
       }
+      setReplaceIndex(null);
     },
-    [
-      timeline.length,
-      maxChords,
-      selectedInsertIndex,
-      saveHistory,
-      insertChord,
-      appendChord,
-      bpm,
-      beatsPerChord,
-      playWithHighlight,
-    ],
+    [saveHistory, replaceWithChordIds, bpm],
   );
 
   return (
     <div className="studio-page">
-      <header className="studio-header">
-        <div className="studio-header__brand">
-          <h1 className="studio-header__title">vibe-chord</h1>
-          <p className="studio-header__subtitle">듣고 고르는 작곡 놀이터</p>
-        </div>
-        <div className="studio-header__actions">
-          <Link to="/explore" className="studio-header__explore">
-            전체 코드 열기
-          </Link>
-          <Link to="/share" className="studio-header__share">
-            데모 공유
-          </Link>
-          <PlaybackControls
-            isPlaying={isPlaying}
-            onPlay={() => void handlePlay()}
-            onStop={handleStop}
-            onUndo={handleUndo}
-            canUndo={canUndo}
-          />
-        </div>
-      </header>
-
       <main className="studio-main">
-        <NaturalLanguageBar />
-        <StudioSettings />
+        <div className="studio-workspace">
+          <header className="studio-header studio-header--brand" aria-label="스튜디오 헤더">
+            <div className="studio-header__row">
+              <div className="studio-header__brand">
+                <h1 className="studio-header__title">vibe-chord</h1>
+                <p className="studio-header__subtitle">듣고 고르는 작곡 놀이터</p>
+              </div>
+              <div className="studio-header__actions" aria-label="악보 재생 및 공유">
+                <PlaybackControls
+                  isPlaying={isPlaying}
+                  onPlay={() => void handlePlay()}
+                  onStop={handleStop}
+                  onUndo={handleUndo}
+                  canUndo={canUndo}
+                  showUndo={false}
+                />
+                <Link to="/share" className="studio-header__share">
+                  데모 공유
+                </Link>
+              </div>
+            </div>
+          </header>
 
-        <section className="studio-timeline-section" aria-label="코드 타임라인">
-          <h2 className="studio-section-title">타임라인</h2>
-          {selectedInsertIndex !== null && (
-            <p className="studio-insert-hint" role="status">
-              {selectedInsertIndex + 1}번째 위치에 넣을 코드를 고르세요
+          <section className="studio-timeline-section studio-score" aria-label="악보">
+            <h2 className="studio-section-title">타임라인</h2>
+            <ConnectionHint chordIds={chordIds} />
+            <p className="studio-drag-hint">
+              맨 끝 + 에 코드 추가 · 블록 탭으로 코드 교체 · 블록 드래그로 순서 변경 · + 에 카드 끌어 놓기
             </p>
-          )}
-          <ConnectionHint chordIds={chordIds} />
-          <p className="studio-drag-hint">
-            블록 드래그로 순서 변경 · + 에 카드 끌어 놓기 · 블록의 「N마디」 탭으로 길이 조절
-          </p>
-          <Timeline
-            timeline={timeline}
-            selectedIndex={selectedInsertIndex}
-            playingIndex={playingIndex}
-            showSymbols={showSymbols}
-            onBlockClick={(index, chordId) => void handleBlockClick(index, chordId)}
-            onInsertClick={handleInsertClick}
-            onReorder={(from, to) => void handleReorder(from, to)}
-            onDropChord={(id, idx) => void handleDropChord(id, idx)}
-            onBlockBarsChange={(index, bars) => {
-              saveHistory();
-              updateBlockBars(index, bars);
-            }}
-          />
-        </section>
+            <Timeline
+              timeline={timeline}
+              insertIndex={selectedInsertIndex}
+              replaceIndex={replaceIndex}
+              playingIndex={playingIndex}
+              showSymbols={showSymbols}
+              onBlockClick={(index, chordId) => void handleBlockClick(index, chordId)}
+              onInsertClick={handleInsertClick}
+              onReorder={(from, to) => void handleReorder(from, to)}
+              onDropChord={(id, idx) => void handleDropChord(id, idx)}
+            />
+          </section>
 
-        {timeline.length >= maxChords && selectedInsertIndex === null ? (
-          <>
-            <SectionFeedback visible />
-            <section className="recommendation-panel recommendation-panel--complete">
-              <h2 className="recommendation-panel__title">{maxChords}코드 완성</h2>
-              <p className="recommendation-panel__empty">
-                ▶ Play로 전체 진행을 들어보세요. 설정에서 마디 수를 8코드로 늘릴 수도 있어요.
-              </p>
-            </section>
-          </>
-        ) : (
-          <RecommendationPanel
-            recommendations={recommendations}
-            showSymbols={showSymbols}
-            onPreview={(chordId) => void handlePreview(chordId)}
-            onSelect={(chordId) => void handleSelectRecommendation(chordId)}
-          />
-        )}
+          <aside className="studio-aside" aria-label="추천 및 설정">
+            <StudioSettings />
+
+            <div className="studio-toolbar" aria-label="편집">
+              <PlaybackControls
+                isPlaying={isPlaying}
+                onPlay={() => void handlePlay()}
+                onStop={handleStop}
+                onUndo={handleUndo}
+                canUndo={canUndo}
+                showPlayback={false}
+                showClearAll
+                onClearAll={handleClearAll}
+                canClearAll={canClearAll}
+              />
+            </div>
+
+            <ChordPickerPanel
+              recommendations={recommendations}
+              showSymbols={showSymbols}
+              pickerMode={pickerMode}
+              insertIndex={selectedInsertIndex}
+              replaceIndex={replaceIndex}
+              timelineLength={timeline.length}
+              pianoNotes={pianoNotes}
+              pianoLabel={pianoLabel}
+              onPreview={(chordId) => void handlePreview(chordId)}
+              onAddChord={handleAddChord}
+              onSelectPreset={(presetId) => void handleSelectPreset(presetId)}
+            />
+          </aside>
+        </div>
       </main>
-
-      <CompletionBadge
-        visible={showCompletionBadge}
-        message={`🎉 ${maxChords}코드 완성!`}
-      />
     </div>
   );
 }

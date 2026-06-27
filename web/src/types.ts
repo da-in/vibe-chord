@@ -11,7 +11,6 @@ export interface ChordDef {
 export interface TimelineChord {
   id: string;
   chordId: string;
-  bars?: 1 | 2;
 }
 
 export interface ChordRecommendation {

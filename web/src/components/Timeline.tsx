@@ -1,18 +1,19 @@
 import type { TimelineChord } from '../types';
 import { CHORD_DRAG_MIME } from '../types';
 import { getChord, getChordColor } from '../lib/chords';
+import { MeasureSlot } from './MeasureSlot';
 
 const REORDER_PREFIX = 'reorder:';
 
 export interface TimelineProps {
   timeline: TimelineChord[];
-  selectedIndex: number | null;
+  insertIndex: number | null;
+  replaceIndex?: number | null;
   playingIndex: number | null;
   onBlockClick: (index: number, chordId: string) => void;
   onInsertClick: (index: number) => void;
   onReorder?: (fromIndex: number, toIndex: number) => void;
   onDropChord?: (chordId: string, index: number) => void;
-  onBlockBarsChange?: (index: number, bars: 1 | 2) => void;
   showSymbols?: boolean;
 }
 
@@ -47,43 +48,26 @@ function handleDropZone(
 
 export function Timeline({
   timeline,
-  selectedIndex,
+  insertIndex,
+  replaceIndex = null,
   playingIndex,
   onBlockClick,
   onInsertClick,
   onReorder,
   onDropChord,
-  onBlockBarsChange,
   showSymbols = false,
 }: TimelineProps) {
   const dragEnabled = Boolean(onReorder);
-
-  if (timeline.length === 0) {
-    return (
-      <div
-        className="timeline timeline--empty"
-        onDragOver={(e) => e.preventDefault()}
-        onDrop={(e) => handleDropZone(e, 0, onDropChord, onReorder)}
-      >
-        <button
-          type="button"
-          className="timeline-insert timeline-insert--drop"
-          aria-label="코드 추가"
-          onClick={() => onInsertClick(0)}
-          onDragOver={(e) => e.preventDefault()}
-          onDrop={(e) => {
-            e.stopPropagation();
-            handleDropZone(e, 0, onDropChord, onReorder);
-          }}
-        >
-          +
-        </button>
-      </div>
-    );
-  }
+  const appendIndex = timeline.length;
 
   return (
-    <div className="timeline" role="list" aria-label="코드 타임라인">
+    <div
+      className={['timeline', timeline.length === 0 && 'timeline--empty']
+        .filter(Boolean)
+        .join(' ')}
+      role="list"
+      aria-label="코드 타임라인"
+    >
       {timeline.map((block, index) => {
         const chord = getChord(block.chordId);
         const label = chord
@@ -92,26 +76,29 @@ export function Timeline({
             : chord.label
           : block.chordId;
         const backgroundColor = chord ? getChordColor(chord.mood) : undefined;
-        const isSelected = selectedIndex === index;
+        const isReplaceTarget = replaceIndex === index;
         const isPlaying = playingIndex === index;
-        const bars = block.bars ?? 1;
 
         return (
-          <div key={block.id} className="timeline-slot" role="listitem">
+          <MeasureSlot
+            key={block.id}
+            variant="chord"
+            showLeadingBarline={index > 0}
+            notes={chord?.notes}
+          >
             <button
               type="button"
               className={[
                 'timeline-block',
-                isSelected && 'timeline-block--selected',
+                isReplaceTarget && 'timeline-block--replace-target',
                 isPlaying && 'timeline-block--playing',
                 dragEnabled && 'timeline-block--draggable',
-                bars === 2 && 'timeline-block--wide',
               ]
                 .filter(Boolean)
                 .join(' ')}
               style={backgroundColor ? { backgroundColor } : undefined}
-              aria-label={`${label}, ${index + 1}번째 코드, ${bars}마디`}
-              aria-pressed={isSelected}
+              aria-label={`${label}, ${index + 1}번째 코드${isReplaceTarget ? ', 교체 선택됨' : ''}`}
+              aria-pressed={isReplaceTarget}
               draggable={dragEnabled}
               onDragStart={(e) => {
                 if (!dragEnabled) return;
@@ -132,49 +119,28 @@ export function Timeline({
               onClick={() => onBlockClick(index, block.chordId)}
             >
               <span className="timeline-block__label">{label}</span>
-              {onBlockBarsChange && (
-                <span
-                  className="timeline-block__bars"
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`${bars}마디, 탭하여 변경`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onBlockBarsChange(index, bars === 1 ? 2 : 1);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      onBlockBarsChange(index, bars === 1 ? 2 : 1);
-                    }
-                  }}
-                >
-                  {bars}마디
-                </span>
-              )}
               {dragEnabled && (
                 <span className="timeline-block__drag-hint" aria-hidden="true">
                   ⠿
                 </span>
               )}
             </button>
-            <button
-              type="button"
-              className="timeline-insert timeline-insert--drop"
-              aria-label={`${index + 1}번째 코드 뒤에 추가`}
-              onClick={() => onInsertClick(index + 1)}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
-                e.stopPropagation();
-                handleDropZone(e, index + 1, onDropChord, onReorder);
-              }}
-            >
-              +
-            </button>
-          </div>
+          </MeasureSlot>
         );
       })}
+      <MeasureSlot
+        variant="insert"
+        insertIndex={appendIndex}
+        timelineLength={timeline.length}
+        isInsertSelected={insertIndex === appendIndex}
+        showLeadingBarline={timeline.length > 0}
+        onInsertClick={onInsertClick}
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={(e) => {
+          e.stopPropagation();
+          handleDropZone(e, appendIndex, onDropChord, onReorder);
+        }}
+      />
     </div>
   );
 }

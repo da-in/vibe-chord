@@ -150,8 +150,7 @@ export async function playTimeline(
   let cursor = 0;
 
   items.forEach((item, index) => {
-    const blockBars = item.bars ?? 1;
-    const duration = chordDurationSeconds(bpm, beatsPerChord, blockBars);
+    const duration = chordDurationSeconds(bpm, beatsPerChord, 1);
     const barStart = cursor;
 
     transport.schedule((time) => {
@@ -172,7 +171,7 @@ export async function playTimeline(
         }, barStart);
       }
 
-      const beatsInBlock = beatsPerChord * blockBars;
+      const beatsInBlock = beatsPerChord;
       for (let beat = 0; beat < beatsInBlock; beat += 2) {
         transport.schedule((time) => {
           if (!playing || generation !== playbackGeneration) return;

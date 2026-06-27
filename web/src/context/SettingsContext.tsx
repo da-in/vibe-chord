@@ -11,13 +11,10 @@ import type { Mood } from '../types';
 const ONBOARDING_KEY = 'vibe-chord-onboarding-done';
 
 export type BeatsPerChord = 2 | 4;
-export type MaxChords = 4 | 8;
 
 interface SettingsContextValue {
   bpm: number;
   setBpm: (bpm: number) => void;
-  maxChords: MaxChords;
-  setMaxChords: (n: MaxChords) => void;
   beatsPerChord: BeatsPerChord;
   setBeatsPerChord: (n: BeatsPerChord) => void;
   showSymbols: boolean;
@@ -41,7 +38,6 @@ function readOnboardingDone(): boolean {
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [bpm, setBpm] = useState(90);
-  const [maxChords, setMaxChords] = useState<MaxChords>(4);
   const [beatsPerChord, setBeatsPerChord] = useState<BeatsPerChord>(4);
   const [showSymbols, setShowSymbols] = useState(false);
   const [selectedMood, setSelectedMood] = useState<Mood | null>(null);
@@ -63,8 +59,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     () => ({
       bpm,
       setBpm,
-      maxChords,
-      setMaxChords,
       beatsPerChord,
       setBeatsPerChord,
       showSymbols,
@@ -77,7 +71,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     }),
     [
       bpm,
-      maxChords,
       beatsPerChord,
       showSymbols,
       selectedMood,

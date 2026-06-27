@@ -61,6 +61,7 @@ vibe-chord/
 │       ├── components/
 │       ├── context/     # timeline, settings
 │       └── lib/         # chords, harmony, audio
+├── design/              # 디자인 시스템 문서 (colors, typography, components)
 ├── docs/                # 스프린트 01~14 산출물
 ├── scripts/             # Issue 생성 등 보조 스크립트
 └── AGENTS.md            # Sprint Master 페르소나

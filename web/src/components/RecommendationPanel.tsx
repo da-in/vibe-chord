@@ -7,6 +7,7 @@ export interface RecommendationPanelProps {
   recommendations: ChordRecommendation[];
   showSymbols?: boolean;
   draggable?: boolean;
+  embedded?: boolean;
   onPreview: (chordId: string) => void;
   onSelect: (chordId: string) => void;
 }
@@ -15,12 +16,18 @@ export function RecommendationPanel({
   recommendations,
   showSymbols = false,
   draggable = true,
+  embedded = false,
   onPreview,
   onSelect,
 }: RecommendationPanelProps) {
   const [expandedWhy, setExpandedWhy] = useState<string | null>(null);
 
   if (recommendations.length === 0) {
+    if (embedded) {
+      return (
+        <p className="recommendation-panel__empty">추천할 코드가 없습니다</p>
+      );
+    }
     return (
       <section className="recommendation-panel recommendation-panel--empty">
         <h2 className="recommendation-panel__title">다음 코드 추천</h2>
@@ -29,12 +36,14 @@ export function RecommendationPanel({
     );
   }
 
-  return (
-    <section className="recommendation-panel" aria-label="다음 코드 추천">
-      <h2 className="recommendation-panel__title">다음 코드 추천</h2>
+  const content = (
+    <>
+      {!embedded && (
+        <h2 className="recommendation-panel__title">다음 코드 추천</h2>
+      )}
       {draggable && (
         <p className="recommendation-panel__drag-hint">
-          카드를 타임라인 + 위에 끌어 놓으면 1마디 재생과 함께 추가됩니다
+          카드·칸을 타임라인 + 위에 끌어 놓으면 1마디 재생과 함께 추가됩니다
         </p>
       )}
       <ul className="recommendation-panel__list">
@@ -110,6 +119,16 @@ export function RecommendationPanel({
           );
         })}
       </ul>
+    </>
+  );
+
+  if (embedded) {
+    return content;
+  }
+
+  return (
+    <section className="recommendation-panel" aria-label="다음 코드 추천">
+      {content}
     </section>
   );
 }

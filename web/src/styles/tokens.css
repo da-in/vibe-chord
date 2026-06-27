@@ -1,0 +1,64 @@
+:root {
+  /* Brand primitives */
+  --color-primary-orange: #ff6f00;
+  --color-warm-beige: #c2a26f;
+  --color-dark-charcoal: #2f2f2f;
+  --color-accent-yellow: #ffb300;
+  --color-hot-pink: #ff1744;
+
+  /* Semantic colors — dark UI */
+  --bg: #0a0a0a;
+  --bg-elevated: #141414;
+  --bg-card: #1c1c1c;
+  --text: #e8e8e8;
+  --text-h: #ffffff;
+  --text-muted: rgba(232, 232, 232, 0.62);
+  --text-on-accent: var(--color-dark-charcoal);
+  --border: rgba(255, 255, 255, 0.1);
+  --accent: var(--color-accent-yellow);
+  --accent-hover: #ffc233;
+  --accent-bg: rgba(255, 179, 0, 0.14);
+  --danger: var(--color-hot-pink);
+  --danger-bg: rgba(255, 23, 68, 0.18);
+  --success: #66bb6a;
+  --score-surface: #ffffff;
+  --score-text: var(--color-dark-charcoal);
+  --score-text-muted: rgba(47, 47, 47, 0.65);
+  --score-divider: rgba(47, 47, 47, 0.12);
+  --staff-line: var(--score-divider);
+  --barline: rgba(47, 47, 47, 0.35);
+  --measure-unit: 88px;
+  --staff-height: 52px;
+  --staff-rail-height: 24px;
+  --chord-layer-min: 56px;
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+
+  /* Legacy aliases during migration */
+  --coral: var(--danger);
+  --coral-bg: var(--danger-bg);
+
+  /* Radius and spacing */
+  --radius: 12px;
+  --radius-sm: 8px;
+  --tap-min: 48px;
+
+  /* Typography */
+  --font-body:
+    'Pretendard Variable', Pretendard, 'Noto Sans KR', 'Apple SD Gothic Neo',
+    system-ui, sans-serif;
+  --font-display: 'Archivo Black', 'Pretendard Variable', sans-serif;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+  --weight-body: 400;
+  --weight-display: 700;
+
+  /* Motion */
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-fast: 0.12s;
+  --duration-normal: 0.2s;
+  --press-scale: 0.96;
+}
