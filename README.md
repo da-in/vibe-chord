@@ -1,65 +1,111 @@
-# vibe sprint
+# vibe-chord
 
-해커톤·스프린트에서 **아이디어에서 MVP까지** 가는 과정을, 팀이 따라갈 수 있는 **문서 템플릿**으로 정리한 레포지토리입니다.
+**듣고 고르는 작곡 놀이터** — 화성학·DAW 없이 코드 진행을 탐색하고, 4마디까지 만들어 Play로 들을 수 있는 웹 앱.
 
-기존에도 “문제 이해 → 아이디어 구체화 → 만들기” 순서로 MVP를 만드는 워크숍·스프린트 방식은 있었습니다. **vibe sprint**는 그 흐름을 바꾸지 않고, AI 에이전트(Cursor, Claude, Codex 등)와 함께 돌리기 쉽게 다듬은 버전입니다.
+이 레포는 [vibe sprint](https://github.com/da-in/vibe-chord) 14단계로 기획한 **vibe-chord** 해커톤 MVP와, 스프린트 문서 템플릿(`docs/`)을 함께 담고 있습니다.
 
-- 각 단계마다 **무엇을 할지·하지 말지**가 `docs/` 템플릿에 적혀 있습니다.
-- 단계 문서마다 **Guide**와 **프롬프트 예시**가 있어, 팀 논의 내용을 에이전트에 넘겨 산출물을 채울 수 있습니다.
-- 루트 **`AGENTS.md`** 에 **Sprint Master** 페르소나가 정의되어 있어, “지금 몇 단계인지·다음에 뭘 하면 되는지”를 에이전트에게 물어볼 수 있습니다.
+## Live demo
 
-## 이 레포에 있는 것
+**https://web-sand-rho-51.vercel.app**
 
-| 경로 | 역할 |
+| 페이지 | 경로 | 설명 |
+|--------|------|------|
+| 온보딩 | `/onboarding` | 분위기 → 시작 코드 → 스튜디오 (건너뛰기 가능) |
+| 작곡 스튜디오 | `/studio` | 타임라인 · 추천 · Play · 설정 |
+| 코드 탐색 | `/explore` | 24코드 그리드 · 유명 진행 프리셋 |
+| 데모 공유 | `/share` | mp3·링크 (mock) |
+
+## 주요 기능
+
+- **즉시 재생** — 코드 블록·추천 카드 탭 = 바로 소리
+- **화성학 추천** — 다음 코드 3~4개 + 「이럴 때 고르면 좋다」 안내
+- **타임라인** — 색 블록, 드래그 순서 변경, `+` 끼워 넣기, 1~2마디 길이
+- **반주** — Play 시 드럼·베이스 패턴
+- **4코드 완성** — 배지 + 자동 재생 (설정에서 8코드까지 확장 가능)
+
+구현 범위·우선순위는 [`docs/13_priority_matrix.md`](docs/13_priority_matrix.md), 진행 이력은 [GitHub Issues](https://github.com/da-in/vibe-chord/issues)를 기준으로 합니다.
+
+## 로컬 실행
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
+브라우저에서 `http://localhost:5173` — 첫 방문 시 `/onboarding`, 이후 `/studio`.
+
+```bash
+npm run build    # 프로덕션 빌드
+npm run preview  # 빌드 결과 미리보기
+```
+
+**Node.js** 20.19+ 권장 (20.18에서도 Vite 6으로 동작).
+
+## 기술 스택
+
+| 영역 | 선택 |
 |------|------|
-| `docs/01` ~ `docs/14` | 스프린트 14단계별 템플릿 (Guide·프롬프트 예시 포함) |
-| `AGENTS.md` | Sprint Master — 단계 안내·실행 시 따를 페르소나 |
-| `scripts/` | 특정 단계에서 쓰는 보조 스크립트 (해당 `docs/` 가이드 참고) |
+| UI | React 19, TypeScript, React Router |
+| 빌드 | Vite 6 |
+| 오디오 | [Tone.js](https://tonejs.github.io/) |
+| 배포 | [Vercel](https://vercel.com) (`web/`) |
 
-단계별 상세 절차·명령어·체크리스트는 **README가 아니라 각 `docs/NN_*.md`** 에 있습니다.
+## 프로젝트 구조
 
-## 스프린트는 세 구간으로 이어집니다
+```
+vibe-chord/
+├── web/                 # MVP 웹 앱 (Vite)
+│   └── src/
+│       ├── pages/       # onboarding, studio, explore, share
+│       ├── components/
+│       ├── context/     # timeline, settings
+│       └── lib/         # chords, harmony, audio
+├── docs/                # 스프린트 01~14 산출물
+├── scripts/             # Issue 생성 등 보조 스크립트
+└── AGENTS.md            # Sprint Master 페르소나
+```
+
+## Vercel 배포
+
+루트가 아닌 **`web`** 디렉터리를 프로젝트 루트로 연결합니다.
+
+1. [Vercel](https://vercel.com) → Import `da-in/vibe-chord`
+2. **Root Directory:** `web`
+3. Framework Preset: Vite (자동 감지)
+4. Build: `npm run build` · Output: `dist`
+
+CLI:
+
+```bash
+cd web
+vercel --prod
+```
+
+SPA 라우팅(`react-router-dom`)은 [`web/vercel.json`](web/vercel.json)의 rewrite로 처리합니다.
+
+---
+
+## vibe sprint (문서 템플릿)
+
+해커톤·스프린트에서 **아이디어 → MVP**까지 가는 14단계 워크숍 흐름과 AI 에이전트용 Guide·프롬프트 예시입니다.
 
 | 구간 | Step | 한 줄 요약 |
 |------|------|-----------|
-| **① 팀·문제 이해** | 01 → 07 | 누구와 무엇을, 지금 어떻게, 무엇이 아픈지·좋은지까지 넓게 수집 |
-| **② 아이디어 구체화** | 08 → 11 | 질문·기능·화면·우리 서비스 흐름으로 좁힘 |
-| **③ 만들기** | 12 → 14 | 스케치 합의 → 우선순위 → GitHub Issue로 구현 |
+| **① 팀·문제 이해** | 01 → 07 | 타겟, 기존 여정, Pain/Wow, 키워드 |
+| **② 아이디어 구체화** | 08 → 11 | HMW, 기능 목록, 페이지, 우리 서비스 여정 |
+| **③ 만들기** | 12 → 14 | 스케치 → 우선순위 → GitHub Issue 구현 |
 
-### 14단계별로 무엇을 하나
+| Step | 템플릿 |
+|------|--------|
+| 03~14 | [`docs/03`](docs/03_service_goal_target_value.md) … [`docs/14`](docs/14_development.md) |
 
-| Step | 절차 | 템플릿 |
-|------|------|--------|
-| 01 | 각자 아이디어 소개 및 팀빌딩 (대면) | [`docs/01_idea_teambuilding.md`](docs/01_idea_teambuilding.md) |
-| 02 | 팀 캔버스 — 역할·목표·규칙 합의 | [`docs/02_team_canvas.md`](docs/02_team_canvas.md) |
-| 03 | 서비스 목적·타겟·핵심 가치 정리 (아직 하나로 결정하지 않음) | [`docs/03_service_goal_target_value.md`](docs/03_service_goal_target_value.md) |
-| 04 | **기존** 고객 여정 — 사용자가 목적을 지금 어떻게 달성하는가 | [`docs/04_existing_customer_journey.md`](docs/04_existing_customer_journey.md) |
-| 05 | 여정에서 Pain Point / Wow Point 추출 | [`docs/05_pain_wow_points.md`](docs/05_pain_wow_points.md) |
-| 06 | Wow 뒤 숨은 전제를 검증하는 질문 만들기 | [`docs/06_hypothesis_questions.md`](docs/06_hypothesis_questions.md) |
-| 07 | 키워드로 팀 생각 시각화 (워드클라우드) | [`docs/07_word_cloud.md`](docs/07_word_cloud.md) |
-| 08 | "어떻게 하면 ~" 질문으로 메커니즘 구체화 | [`docs/08_how_might_we_questions.md`](docs/08_how_might_we_questions.md) |
-| 09 | 논의에서 나온 기능을 **전부** 나열 (우선순위·제외 없음) | [`docs/09_feature_list.md`](docs/09_feature_list.md) |
-| 10 | 기능(F-xx)을 페이지별로 배치 (제외 없음) | [`docs/10_page_routing_split.md`](docs/10_page_routing_split.md) |
-| 11 | **우리 서비스** 고객 여정 맵 | [`docs/11_customer_journey_map.md`](docs/11_customer_journey_map.md) |
-| 12 | 각자 AI로 스케치 → 공유·합의, 최종 스케치만 기록 (대면 워크숍) | [`docs/12_sketch_and_decision.md`](docs/12_sketch_and_decision.md) |
-| 13 | 기능(F-xx)별 1~4순위·스펙 아웃 | [`docs/13_priority_matrix.md`](docs/13_priority_matrix.md) |
-| 14 | `docs/13` 기준 Issue 일괄 등록, 팀원이 Issue 단위로 구현 | [`docs/14_development.md`](docs/14_development.md) |
+- Step 04 = *지금 세상*의 여정 · Step 11 = *우리 서비스* 여정  
+- Step 09·10 = 기능 수집·배치 · **Step 13** = 1~4순위·스펙 아웃  
+- Step 14 이후 상태 = **GitHub Issues**
 
-Step 01은 문서 작성 없이 대면으로 진행합니다. **본격적인 스프린트 문서는 `docs/03`부터** 채웁니다. Step 14 이후 진행 상황은 **GitHub Issues**가 기준입니다.
+막히면 에이전트에게 「지금 Step 몇?」 — [`AGENTS.md`](AGENTS.md) Sprint Master가 해당 `docs/`를 안내합니다.
 
-**헷갈리기 쉬운 점:** Step 04는 *지금 세상*의 여정, Step 11은 *우리가 만들 서비스* 여정입니다. Step 09·10에서는 기능을 빼지 않고 모으고 배치하고, **Step 13에서 비로소** 우선순위를 정합니다.
+## License
 
-## 처음 시작하기
-
-1. 이 레포를 팀 프로젝트로 fork하거나 clone합니다.
-2. 팀빌딩·팀 캔버스(Step 01·02)를 마친 뒤, **`docs/03_service_goal_target_value.md`** 를 엽니다.
-3. 해당 문서 상단의 **Guide**를 읽고, **프롬프트 예시**를 에이전트에 붙여 논의 내용을 채웁니다.
-4. **`docs/04` → … → `docs/14`** 순서로 진행합니다. 단계를 건너뛰지 않는 것이 좋습니다 (예: 기능 나열 전에 우선순위를 정하지 않음).
-5. 막히면 에이전트에게 “지금 Step 몇이야? 뭘 하면 돼?”라고 물어보세요. `AGENTS.md`의 Sprint Master가 해당 `docs/` 파일을 가리켜 안내합니다.
-
-## 에이전트 친화적으로 바뀐 점
-
-- **입력·출력이 문서로 고정**되어, 팀 논의 → 마크다운 → 다음 단계 입력이 이어집니다.
-- **단계마다 프롬프트 예시**가 있어, 매번 지시문을 새로 쓰지 않아도 됩니다.
-- **Sprint Master**(`AGENTS.md`)가 14단계 순서와 “이 단계에서 하지 말 것”을 알고 있어, 조기에 범위를 자르거나 단계를 건너뛰는 실수를 줄입니다.
-- Step 14에서 **`docs/13` 기준으로 Issue를 등록**해, 구현도 에이전트·팀원이 Issue 단위로 나눠 진행할 수 있습니다.
+MIT (템플릿·MVP 코드 — 팀 fork 후 자유롭게 수정)
