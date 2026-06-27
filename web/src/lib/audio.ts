@@ -7,8 +7,8 @@ import {
   start,
 } from 'tone';
 import { getChord } from './chords';
+import type { TimelineChord } from '../types';
 
-const DEFAULT_BPM = 90;
 const BEATS_PER_BAR = 4;
 
 let synth: PolySynth<FMSynth> | null = null;
@@ -80,6 +80,14 @@ function bassNoteFromChord(chordId: string): string | null {
   return `${match[1]}${octave}`;
 }
 
+function chordDurationSeconds(
+  bpm: number,
+  beatsPerChord: number,
+  blockBars: number,
+): number {
+  return ((60 / bpm) * beatsPerChord * blockBars);
+}
+
 export async function ensureAudioStarted(): Promise<void> {
   await start();
   getSynth();
@@ -93,24 +101,44 @@ export function playChord(chordId: string, duration = 1.5): void {
   });
 }
 
+export function playOneBar(
+  chordId: string,
+  bpm = 90,
+  beatsPerChord: number = BEATS_PER_BAR,
+): void {
+  const duration = chordDurationSeconds(bpm, beatsPerChord, 1);
+  playChord(chordId, duration);
+}
+
 export interface PlayChordsOptions {
   withBacking?: boolean;
+  beatsPerChord?: number;
 }
 
 export async function playChords(
   chordIds: string[],
-  bpm = DEFAULT_BPM,
+  bpm = 90,
   onStep?: (index: number) => void,
   options: PlayChordsOptions = {},
 ): Promise<void> {
-  if (chordIds.length === 0) return;
+  const items: TimelineChord[] = chordIds.map((id) => ({ id, chordId: id }));
+  return playTimeline(items, bpm, onStep, options);
+}
+
+export async function playTimeline(
+  items: TimelineChord[],
+  bpm = 90,
+  onStep?: (index: number) => void,
+  options: PlayChordsOptions = {},
+): Promise<void> {
+  if (items.length === 0) return;
 
   await ensureAudioStarted();
   stopPlayback();
 
   const generation = ++playbackGeneration;
   playing = true;
-  const { withBacking = false } = options;
+  const { withBacking = false, beatsPerChord = BEATS_PER_BAR } = options;
 
   const transport = getTransport();
   transport.bpm.value = bpm;
@@ -118,36 +146,42 @@ export async function playChords(
   transport.position = 0;
   transport.cancel();
 
-  const barDuration = (60 / bpm) * BEATS_PER_BAR;
-  const beatDuration = barDuration / BEATS_PER_BAR;
+  const beatDuration = 60 / bpm;
+  let cursor = 0;
 
-  chordIds.forEach((chordId, index) => {
-    const barStart = index * barDuration;
+  items.forEach((item, index) => {
+    const blockBars = item.bars ?? 1;
+    const duration = chordDurationSeconds(bpm, beatsPerChord, blockBars);
+    const barStart = cursor;
 
     transport.schedule((time) => {
       if (!playing || generation !== playbackGeneration) return;
       onStep?.(index);
-      const chord = getChord(chordId);
+      const chord = getChord(item.chordId);
       if (chord) {
-        getSynth().triggerAttackRelease(chord.notes, barDuration * 0.95, time);
+        getSynth().triggerAttackRelease(chord.notes, duration * 0.95, time);
       }
     }, barStart);
 
     if (withBacking) {
-      const bassNote = bassNoteFromChord(chordId);
+      const bassNote = bassNoteFromChord(item.chordId);
       if (bassNote) {
         transport.schedule((time) => {
           if (!playing || generation !== playbackGeneration) return;
-          getBassSynth().triggerAttackRelease(bassNote, barDuration * 0.9, time);
+          getBassSynth().triggerAttackRelease(bassNote, duration * 0.9, time);
         }, barStart);
       }
 
-      transport.schedule((time) => {
-        if (!playing || generation !== playbackGeneration) return;
-        getKickSynth().triggerAttackRelease('C1', '8n', time);
-        getKickSynth().triggerAttackRelease('C1', '8n', time + beatDuration * 2);
-      }, barStart);
+      const beatsInBlock = beatsPerChord * blockBars;
+      for (let beat = 0; beat < beatsInBlock; beat += 2) {
+        transport.schedule((time) => {
+          if (!playing || generation !== playbackGeneration) return;
+          getKickSynth().triggerAttackRelease('C1', '8n', time);
+        }, barStart + beat * beatDuration);
+      }
     }
+
+    cursor += duration;
   });
 
   return new Promise((resolve) => {
@@ -155,7 +189,7 @@ export async function playChords(
       if (generation !== playbackGeneration) return;
       playing = false;
       resolve();
-    }, chordIds.length * barDuration);
+    }, cursor);
 
     transport.start();
   });

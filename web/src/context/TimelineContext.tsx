@@ -7,17 +7,16 @@ import {
   type ReactNode,
 } from 'react';
 import type { TimelineChord } from '../types';
-
-export const MAX_CHORDS = 4;
+import { useSettings } from './SettingsContext';
 
 let idCounter = 0;
 
-export function createTimelineChord(chordId: string): TimelineChord {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return { id: crypto.randomUUID(), chordId };
-  }
-  idCounter += 1;
-  return { id: `tc-${idCounter}`, chordId };
+export function createTimelineChord(chordId: string, bars: 1 | 2 = 1): TimelineChord {
+  const id =
+    typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `tc-${++idCounter}`;
+  return { id, chordId, bars };
 }
 
 function cloneTimeline(timeline: TimelineChord[]): TimelineChord[] {
@@ -29,30 +28,40 @@ interface TimelineContextValue {
   history: TimelineChord[][];
   canUndo: boolean;
   isFull: boolean;
+  maxChords: number;
+  activePresetId: string | null;
   saveHistory: () => void;
   undo: () => void;
   setTimeline: (next: TimelineChord[]) => void;
   appendChord: (chordId: string) => TimelineChord[] | null;
   insertChord: (chordId: string, index: number) => TimelineChord[] | null;
-  replaceWithChordIds: (chordIds: string[]) => TimelineChord[];
+  replaceWithChordIds: (chordIds: string[], presetId?: string) => TimelineChord[];
+  replaceChordAt: (index: number, chordId: string) => TimelineChord[];
+  updateBlockBars: (index: number, bars: 1 | 2) => void;
   reorder: (fromIndex: number, toIndex: number) => TimelineChord[];
+  resetToStarter: (chordId: string) => void;
 }
 
 const TimelineContext = createContext<TimelineContextValue | null>(null);
 
 export function TimelineProvider({ children }: { children: ReactNode }) {
+  const { maxChords } = useSettings();
   const [timeline, setTimelineState] = useState<TimelineChord[]>(() => [
     createTimelineChord('C'),
   ]);
   const [history, setHistory] = useState<TimelineChord[][]>([]);
+  const [activePresetId, setActivePresetId] = useState<string | null>(null);
 
   const saveHistory = useCallback(() => {
     setHistory((prev) => [...prev, cloneTimeline(timeline)]);
   }, [timeline]);
 
-  const setTimeline = useCallback((next: TimelineChord[]) => {
-    setTimelineState(next.slice(0, MAX_CHORDS));
-  }, []);
+  const setTimeline = useCallback(
+    (next: TimelineChord[]) => {
+      setTimelineState(next.slice(0, maxChords));
+    },
+    [maxChords],
+  );
 
   const undo = useCallback(() => {
     setHistory((prev) => {
@@ -65,29 +74,53 @@ export function TimelineProvider({ children }: { children: ReactNode }) {
 
   const appendChord = useCallback(
     (chordId: string): TimelineChord[] | null => {
-      if (timeline.length >= MAX_CHORDS) return null;
+      if (timeline.length >= maxChords) return null;
       const next = [...timeline, createTimelineChord(chordId)];
       setTimelineState(next);
+      setActivePresetId(null);
       return next;
     },
-    [timeline],
+    [timeline, maxChords],
   );
 
   const insertChord = useCallback(
     (chordId: string, index: number): TimelineChord[] | null => {
       const next = [...timeline];
       next.splice(index, 0, createTimelineChord(chordId));
-      const trimmed = next.slice(0, MAX_CHORDS);
+      const trimmed = next.slice(0, maxChords);
       setTimelineState(trimmed);
+      setActivePresetId(null);
       return trimmed;
+    },
+    [timeline, maxChords],
+  );
+
+  const replaceWithChordIds = useCallback(
+    (chordIds: string[], presetId?: string): TimelineChord[] => {
+      const next = chordIds.slice(0, maxChords).map((id) => createTimelineChord(id));
+      setTimelineState(next);
+      setActivePresetId(presetId ?? null);
+      return next;
+    },
+    [maxChords],
+  );
+
+  const replaceChordAt = useCallback(
+    (index: number, chordId: string): TimelineChord[] => {
+      const next = timeline.map((item, i) =>
+        i === index ? { ...item, chordId } : item,
+      );
+      setTimelineState(next);
+      setActivePresetId(null);
+      return next;
     },
     [timeline],
   );
 
-  const replaceWithChordIds = useCallback((chordIds: string[]): TimelineChord[] => {
-    const next = chordIds.slice(0, MAX_CHORDS).map((id) => createTimelineChord(id));
-    setTimelineState(next);
-    return next;
+  const updateBlockBars = useCallback((index: number, bars: 1 | 2) => {
+    setTimelineState((prev) =>
+      prev.map((item, i) => (i === index ? { ...item, bars } : item)),
+    );
   }, []);
 
   const reorder = useCallback(
@@ -102,30 +135,46 @@ export function TimelineProvider({ children }: { children: ReactNode }) {
     [timeline],
   );
 
+  const resetToStarter = useCallback((chordId: string) => {
+    setTimelineState([createTimelineChord(chordId)]);
+    setHistory([]);
+    setActivePresetId(null);
+  }, []);
+
   const value = useMemo(
     () => ({
       timeline,
       history,
       canUndo: history.length > 0,
-      isFull: timeline.length >= MAX_CHORDS,
+      isFull: timeline.length >= maxChords,
+      maxChords,
+      activePresetId,
       saveHistory,
       undo,
       setTimeline,
       appendChord,
       insertChord,
       replaceWithChordIds,
+      replaceChordAt,
+      updateBlockBars,
       reorder,
+      resetToStarter,
     }),
     [
       timeline,
       history,
+      maxChords,
+      activePresetId,
       saveHistory,
       undo,
       setTimeline,
       appendChord,
       insertChord,
       replaceWithChordIds,
+      replaceChordAt,
+      updateBlockBars,
       reorder,
+      resetToStarter,
     ],
   );
 
@@ -136,8 +185,6 @@ export function TimelineProvider({ children }: { children: ReactNode }) {
 
 export function useTimeline(): TimelineContextValue {
   const ctx = useContext(TimelineContext);
-  if (!ctx) {
-    throw new Error('useTimeline must be used within TimelineProvider');
-  }
+  if (!ctx) throw new Error('useTimeline must be used within TimelineProvider');
   return ctx;
 }

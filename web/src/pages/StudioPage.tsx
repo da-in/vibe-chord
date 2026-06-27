@@ -1,27 +1,34 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CompletionBadge } from '../components/CompletionBadge';
+import { ConnectionHint } from '../components/ConnectionHint';
 import { PlaybackControls } from '../components/PlaybackControls';
 import { RecommendationPanel } from '../components/RecommendationPanel';
+import { StudioSettings } from '../components/StudioSettings';
 import { Timeline } from '../components/Timeline';
-import { MAX_CHORDS, useTimeline } from '../context/TimelineContext';
+import { useSettings } from '../context/SettingsContext';
+import { useTimeline } from '../context/TimelineContext';
 import {
   ensureAudioStarted,
   playChord,
-  playChords,
+  playOneBar,
+  playTimeline,
   stopPlayback,
 } from '../lib/audio';
 import { getRecommendations } from '../lib/harmony';
 
 export default function StudioPage() {
+  const { bpm, beatsPerChord, showSymbols } = useSettings();
   const {
     timeline,
+    maxChords,
     canUndo,
     saveHistory,
     undo,
     appendChord,
     insertChord,
     reorder,
+    updateBlockBars,
   } = useTimeline();
 
   const [selectedInsertIndex, setSelectedInsertIndex] = useState<number | null>(
@@ -32,29 +39,33 @@ export default function StudioPage() {
   const [showCompletionBadge, setShowCompletionBadge] = useState(false);
 
   const lastChordId = timeline[timeline.length - 1]?.chordId ?? null;
+  const chordIds = useMemo(
+    () => timeline.map((item) => item.chordId),
+    [timeline],
+  );
   const recommendations = useMemo(
     () => getRecommendations(lastChordId, timeline.length),
     [lastChordId, timeline.length],
   );
 
   useEffect(() => {
-    setShowCompletionBadge(timeline.length === MAX_CHORDS);
-  }, [timeline.length]);
+    setShowCompletionBadge(timeline.length === maxChords);
+  }, [timeline.length, maxChords]);
 
-  const playWithHighlight = useCallback(async (chordIds: string[]) => {
+  const playbackOptions = useMemo(
+    () => ({ withBacking: true, beatsPerChord }),
+    [beatsPerChord],
+  );
+
+  const playWithHighlight = useCallback(async () => {
     setIsPlaying(true);
     try {
-      await playChords(
-        chordIds,
-        90,
-        (index) => setPlayingIndex(index),
-        { withBacking: true },
-      );
+      await playTimeline(timeline, bpm, (index) => setPlayingIndex(index), playbackOptions);
     } finally {
       setIsPlaying(false);
       setPlayingIndex(null);
     }
-  }, []);
+  }, [timeline, bpm, playbackOptions]);
 
   const handleBlockClick = useCallback(async (_index: number, chordId: string) => {
     await ensureAudioStarted();
@@ -74,8 +85,8 @@ export default function StudioPage() {
     if (timeline.length === 0) return;
     await ensureAudioStarted();
     stopPlayback();
-    await playWithHighlight(timeline.map((item) => item.chordId));
-  }, [timeline, playWithHighlight]);
+    await playWithHighlight();
+  }, [timeline.length, playWithHighlight]);
 
   const handleStop = useCallback(() => {
     stopPlayback();
@@ -94,16 +105,48 @@ export default function StudioPage() {
       saveHistory();
       const next = reorder(fromIndex, toIndex);
       setSelectedInsertIndex(null);
-      await playWithHighlight(next.map((item) => item.chordId));
+      setIsPlaying(true);
+      try {
+        await playTimeline(next, bpm, (index) => setPlayingIndex(index), playbackOptions);
+      } finally {
+        setIsPlaying(false);
+        setPlayingIndex(null);
+      }
     },
-    [saveHistory, reorder, playWithHighlight],
+    [saveHistory, reorder, bpm, playbackOptions],
+  );
+
+  const handleDropChord = useCallback(
+    async (chordId: string, index: number) => {
+      if (timeline.length >= maxChords && selectedInsertIndex === null) return;
+
+      await ensureAudioStarted();
+      saveHistory();
+
+      const nextTimeline =
+        selectedInsertIndex !== null
+          ? insertChord(chordId, selectedInsertIndex)
+          : insertChord(chordId, index);
+
+      if (!nextTimeline) return;
+
+      setSelectedInsertIndex(null);
+      playOneBar(chordId, bpm, beatsPerChord);
+    },
+    [
+      timeline.length,
+      maxChords,
+      selectedInsertIndex,
+      saveHistory,
+      insertChord,
+      bpm,
+      beatsPerChord,
+    ],
   );
 
   const handleSelectRecommendation = useCallback(
     async (chordId: string) => {
-      if (timeline.length >= MAX_CHORDS && selectedInsertIndex === null) {
-        return;
-      }
+      if (timeline.length >= maxChords && selectedInsertIndex === null) return;
 
       await ensureAudioStarted();
       saveHistory();
@@ -117,20 +160,26 @@ export default function StudioPage() {
 
       setSelectedInsertIndex(null);
 
-      const previewIds = nextTimeline.slice(-2).map((item) => item.chordId);
-      await playChords(previewIds, 90, undefined, { withBacking: false });
+      const previewItems = nextTimeline.slice(-2);
+      await playTimeline(previewItems, bpm, undefined, {
+        withBacking: false,
+        beatsPerChord,
+      });
 
-      if (nextTimeline.length === MAX_CHORDS) {
+      if (nextTimeline.length === maxChords) {
         setShowCompletionBadge(true);
-        await playWithHighlight(nextTimeline.map((item) => item.chordId));
+        await playWithHighlight();
       }
     },
     [
       timeline.length,
+      maxChords,
       selectedInsertIndex,
       saveHistory,
       insertChord,
       appendChord,
+      bpm,
+      beatsPerChord,
       playWithHighlight,
     ],
   );
@@ -146,6 +195,9 @@ export default function StudioPage() {
           <Link to="/explore" className="studio-header__explore">
             전체 코드 열기
           </Link>
+          <Link to="/share" className="studio-header__share">
+            데모 공유
+          </Link>
           <PlaybackControls
             isPlaying={isPlaying}
             onPlay={() => void handlePlay()}
@@ -157,6 +209,8 @@ export default function StudioPage() {
       </header>
 
       <main className="studio-main">
+        <StudioSettings />
+
         <section className="studio-timeline-section" aria-label="코드 타임라인">
           <h2 className="studio-section-title">타임라인</h2>
           {selectedInsertIndex !== null && (
@@ -164,35 +218,47 @@ export default function StudioPage() {
               {selectedInsertIndex + 1}번째 위치에 넣을 코드를 고르세요
             </p>
           )}
-          <p className="studio-drag-hint">블록을 드래그하면 순서를 바꿀 수 있어요</p>
+          <ConnectionHint chordIds={chordIds} />
+          <p className="studio-drag-hint">
+            블록 드래그로 순서 변경 · + 에 카드 끌어 놓기 · 블록의 「N마디」 탭으로 길이 조절
+          </p>
           <Timeline
             timeline={timeline}
             selectedIndex={selectedInsertIndex}
             playingIndex={playingIndex}
+            showSymbols={showSymbols}
             onBlockClick={(index, chordId) => void handleBlockClick(index, chordId)}
             onInsertClick={handleInsertClick}
             onReorder={(from, to) => void handleReorder(from, to)}
+            onDropChord={(id, idx) => void handleDropChord(id, idx)}
+            onBlockBarsChange={(index, bars) => {
+              saveHistory();
+              updateBlockBars(index, bars);
+            }}
           />
         </section>
 
-        {timeline.length >= MAX_CHORDS && selectedInsertIndex === null ? (
+        {timeline.length >= maxChords && selectedInsertIndex === null ? (
           <section className="recommendation-panel recommendation-panel--complete">
-            <h2 className="recommendation-panel__title">4마디 완성</h2>
+            <h2 className="recommendation-panel__title">{maxChords}코드 완성</h2>
             <p className="recommendation-panel__empty">
-              ▶ Play로 전체 진행을 들어보세요. 블록 사이 + 로 끼워 넣거나 드래그로 순서를 바꿀 수
-              있어요.
+              ▶ Play로 전체 진행을 들어보세요. 설정에서 마디 수를 8코드로 늘릴 수도 있어요.
             </p>
           </section>
         ) : (
           <RecommendationPanel
             recommendations={recommendations}
+            showSymbols={showSymbols}
             onPreview={(chordId) => void handlePreview(chordId)}
             onSelect={(chordId) => void handleSelectRecommendation(chordId)}
           />
         )}
       </main>
 
-      <CompletionBadge visible={showCompletionBadge} />
+      <CompletionBadge
+        visible={showCompletionBadge}
+        message={`🎉 ${maxChords}코드 완성!`}
+      />
     </div>
   );
 }

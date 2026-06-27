@@ -11,6 +11,7 @@ export interface ChordDef {
 export interface TimelineChord {
   id: string;
   chordId: string;
+  bars?: 1 | 2;
 }
 
 export interface ChordRecommendation {
@@ -18,3 +19,5 @@ export interface ChordRecommendation {
   whenToChoose: string;
   reason?: string;
 }
+
+export const CHORD_DRAG_MIME = 'application/vnd.vibe-chord.chord-id';
