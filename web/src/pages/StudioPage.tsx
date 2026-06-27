@@ -2,8 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CompletionBadge } from '../components/CompletionBadge';
 import { ConnectionHint } from '../components/ConnectionHint';
+import { NaturalLanguageBar } from '../components/NaturalLanguageBar';
 import { PlaybackControls } from '../components/PlaybackControls';
 import { RecommendationPanel } from '../components/RecommendationPanel';
+import { SectionFeedback } from '../components/SectionFeedback';
 import { StudioSettings } from '../components/StudioSettings';
 import { Timeline } from '../components/Timeline';
 import { useSettings } from '../context/SettingsContext';
@@ -209,6 +211,7 @@ export default function StudioPage() {
       </header>
 
       <main className="studio-main">
+        <NaturalLanguageBar />
         <StudioSettings />
 
         <section className="studio-timeline-section" aria-label="코드 타임라인">
@@ -239,12 +242,15 @@ export default function StudioPage() {
         </section>
 
         {timeline.length >= maxChords && selectedInsertIndex === null ? (
-          <section className="recommendation-panel recommendation-panel--complete">
-            <h2 className="recommendation-panel__title">{maxChords}코드 완성</h2>
-            <p className="recommendation-panel__empty">
-              ▶ Play로 전체 진행을 들어보세요. 설정에서 마디 수를 8코드로 늘릴 수도 있어요.
-            </p>
-          </section>
+          <>
+            <SectionFeedback visible />
+            <section className="recommendation-panel recommendation-panel--complete">
+              <h2 className="recommendation-panel__title">{maxChords}코드 완성</h2>
+              <p className="recommendation-panel__empty">
+                ▶ Play로 전체 진행을 들어보세요. 설정에서 마디 수를 8코드로 늘릴 수도 있어요.
+              </p>
+            </section>
+          </>
         ) : (
           <RecommendationPanel
             recommendations={recommendations}
