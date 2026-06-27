@@ -1,8 +1,10 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { CompletionBadge } from '../components/CompletionBadge';
 import { PlaybackControls } from '../components/PlaybackControls';
 import { RecommendationPanel } from '../components/RecommendationPanel';
 import { Timeline } from '../components/Timeline';
+import { MAX_CHORDS, useTimeline } from '../context/TimelineContext';
 import {
   ensureAudioStarted,
   playChord,
@@ -10,29 +12,18 @@ import {
   stopPlayback,
 } from '../lib/audio';
 import { getRecommendations } from '../lib/harmony';
-import type { TimelineChord } from '../types';
-
-let idCounter = 0;
-
-function createId(): string {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-  idCounter += 1;
-  return `tc-${idCounter}`;
-}
-
-function createTimelineChord(chordId: string): TimelineChord {
-  return { id: createId(), chordId };
-}
-
-const MAX_CHORDS = 4;
 
 export default function StudioPage() {
-  const [timeline, setTimeline] = useState<TimelineChord[]>(() => [
-    createTimelineChord('C'),
-  ]);
-  const [history, setHistory] = useState<TimelineChord[][]>([]);
+  const {
+    timeline,
+    canUndo,
+    saveHistory,
+    undo,
+    appendChord,
+    insertChord,
+    reorder,
+  } = useTimeline();
+
   const [selectedInsertIndex, setSelectedInsertIndex] = useState<number | null>(
     null,
   );
@@ -46,8 +37,23 @@ export default function StudioPage() {
     [lastChordId, timeline.length],
   );
 
-  const saveHistory = useCallback((snapshot: TimelineChord[]) => {
-    setHistory((prev) => [...prev, snapshot.map((item) => ({ ...item }))]);
+  useEffect(() => {
+    setShowCompletionBadge(timeline.length === MAX_CHORDS);
+  }, [timeline.length]);
+
+  const playWithHighlight = useCallback(async (chordIds: string[]) => {
+    setIsPlaying(true);
+    try {
+      await playChords(
+        chordIds,
+        90,
+        (index) => setPlayingIndex(index),
+        { withBacking: true },
+      );
+    } finally {
+      setIsPlaying(false);
+      setPlayingIndex(null);
+    }
   }, []);
 
   const handleBlockClick = useCallback(async (_index: number, chordId: string) => {
@@ -66,23 +72,10 @@ export default function StudioPage() {
 
   const handlePlay = useCallback(async () => {
     if (timeline.length === 0) return;
-
     await ensureAudioStarted();
     stopPlayback();
-    setIsPlaying(true);
-    setPlayingIndex(null);
-
-    try {
-      await playChords(
-        timeline.map((item) => item.chordId),
-        90,
-        (index) => setPlayingIndex(index),
-      );
-    } finally {
-      setIsPlaying(false);
-      setPlayingIndex(null);
-    }
-  }, [timeline]);
+    await playWithHighlight(timeline.map((item) => item.chordId));
+  }, [timeline, playWithHighlight]);
 
   const handleStop = useCallback(() => {
     stopPlayback();
@@ -91,15 +84,20 @@ export default function StudioPage() {
   }, []);
 
   const handleUndo = useCallback(() => {
-    setHistory((prev) => {
-      if (prev.length === 0) return prev;
-      const previous = prev[prev.length - 1];
-      setTimeline(previous);
-      setShowCompletionBadge(previous.length === MAX_CHORDS);
+    undo();
+    setSelectedInsertIndex(null);
+  }, [undo]);
+
+  const handleReorder = useCallback(
+    async (fromIndex: number, toIndex: number) => {
+      await ensureAudioStarted();
+      saveHistory();
+      const next = reorder(fromIndex, toIndex);
       setSelectedInsertIndex(null);
-      return prev.slice(0, -1);
-    });
-  }, []);
+      await playWithHighlight(next.map((item) => item.chordId));
+    },
+    [saveHistory, reorder, playWithHighlight],
+  );
 
   const handleSelectRecommendation = useCallback(
     async (chordId: string) => {
@@ -108,44 +106,33 @@ export default function StudioPage() {
       }
 
       await ensureAudioStarted();
-      saveHistory(timeline);
+      saveHistory();
 
-      const newEntry = createTimelineChord(chordId);
-      let nextTimeline: TimelineChord[];
+      const nextTimeline =
+        selectedInsertIndex !== null
+          ? insertChord(chordId, selectedInsertIndex)
+          : appendChord(chordId);
 
-      if (selectedInsertIndex !== null) {
-        nextTimeline = [...timeline];
-        nextTimeline.splice(selectedInsertIndex, 0, newEntry);
-      } else {
-        nextTimeline = [...timeline, newEntry];
-      }
+      if (!nextTimeline) return;
 
-      if (nextTimeline.length > MAX_CHORDS) {
-        nextTimeline = nextTimeline.slice(0, MAX_CHORDS);
-      }
-
-      setTimeline(nextTimeline);
       setSelectedInsertIndex(null);
 
       const previewIds = nextTimeline.slice(-2).map((item) => item.chordId);
-      await playChords(previewIds);
+      await playChords(previewIds, 90, undefined, { withBacking: false });
 
       if (nextTimeline.length === MAX_CHORDS) {
         setShowCompletionBadge(true);
-        setIsPlaying(true);
-        try {
-          await playChords(
-            nextTimeline.map((item) => item.chordId),
-            90,
-            (index) => setPlayingIndex(index),
-          );
-        } finally {
-          setIsPlaying(false);
-          setPlayingIndex(null);
-        }
+        await playWithHighlight(nextTimeline.map((item) => item.chordId));
       }
     },
-    [timeline, selectedInsertIndex, saveHistory],
+    [
+      timeline.length,
+      selectedInsertIndex,
+      saveHistory,
+      insertChord,
+      appendChord,
+      playWithHighlight,
+    ],
   );
 
   return (
@@ -155,13 +142,18 @@ export default function StudioPage() {
           <h1 className="studio-header__title">vibe-chord</h1>
           <p className="studio-header__subtitle">듣고 고르는 작곡 놀이터</p>
         </div>
-        <PlaybackControls
-          isPlaying={isPlaying}
-          onPlay={() => void handlePlay()}
-          onStop={handleStop}
-          onUndo={handleUndo}
-          canUndo={history.length > 0}
-        />
+        <div className="studio-header__actions">
+          <Link to="/explore" className="studio-header__explore">
+            전체 코드 열기
+          </Link>
+          <PlaybackControls
+            isPlaying={isPlaying}
+            onPlay={() => void handlePlay()}
+            onStop={handleStop}
+            onUndo={handleUndo}
+            canUndo={canUndo}
+          />
+        </div>
       </header>
 
       <main className="studio-main">
@@ -172,12 +164,14 @@ export default function StudioPage() {
               {selectedInsertIndex + 1}번째 위치에 넣을 코드를 고르세요
             </p>
           )}
+          <p className="studio-drag-hint">블록을 드래그하면 순서를 바꿀 수 있어요</p>
           <Timeline
             timeline={timeline}
             selectedIndex={selectedInsertIndex}
             playingIndex={playingIndex}
             onBlockClick={(index, chordId) => void handleBlockClick(index, chordId)}
             onInsertClick={handleInsertClick}
+            onReorder={(from, to) => void handleReorder(from, to)}
           />
         </section>
 
@@ -185,7 +179,8 @@ export default function StudioPage() {
           <section className="recommendation-panel recommendation-panel--complete">
             <h2 className="recommendation-panel__title">4마디 완성</h2>
             <p className="recommendation-panel__empty">
-              ▶ Play로 전체 진행을 들어보세요. 블록 사이 + 로 끼워 넣을 수도 있어요.
+              ▶ Play로 전체 진행을 들어보세요. 블록 사이 + 로 끼워 넣거나 드래그로 순서를 바꿀 수
+              있어요.
             </p>
           </section>
         ) : (

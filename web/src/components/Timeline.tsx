@@ -7,6 +7,7 @@ export interface TimelineProps {
   playingIndex: number | null;
   onBlockClick: (index: number, chordId: string) => void;
   onInsertClick: (index: number) => void;
+  onReorder?: (fromIndex: number, toIndex: number) => void;
   showSymbols?: boolean;
 }
 
@@ -16,8 +17,11 @@ export function Timeline({
   playingIndex,
   onBlockClick,
   onInsertClick,
+  onReorder,
   showSymbols = false,
 }: TimelineProps) {
+  const dragEnabled = Boolean(onReorder);
+
   if (timeline.length === 0) {
     return (
       <div className="timeline timeline--empty">
@@ -54,15 +58,40 @@ export function Timeline({
                 'timeline-block',
                 isSelected && 'timeline-block--selected',
                 isPlaying && 'timeline-block--playing',
+                dragEnabled && 'timeline-block--draggable',
               ]
                 .filter(Boolean)
                 .join(' ')}
               style={backgroundColor ? { backgroundColor } : undefined}
               aria-label={`${label}, ${index + 1}번째 코드`}
               aria-pressed={isSelected}
+              draggable={dragEnabled}
+              onDragStart={(e) => {
+                if (!dragEnabled) return;
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', String(index));
+              }}
+              onDragOver={(e) => {
+                if (!dragEnabled) return;
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+              }}
+              onDrop={(e) => {
+                if (!dragEnabled) return;
+                e.preventDefault();
+                const from = parseInt(e.dataTransfer.getData('text/plain'), 10);
+                if (!Number.isNaN(from) && from !== index) {
+                  onReorder?.(from, index);
+                }
+              }}
               onClick={() => onBlockClick(index, block.chordId)}
             >
               <span className="timeline-block__label">{label}</span>
+              {dragEnabled && (
+                <span className="timeline-block__drag-hint" aria-hidden="true">
+                  ⠿
+                </span>
+              )}
             </button>
             <button
               type="button"
